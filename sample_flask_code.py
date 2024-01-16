@@ -7,8 +7,9 @@ app = Flask(__name__)
 
 data_file = 'data.json'
 
-@app.route('/tasks', methods=['POST', 'GET', 'PUT', 'DELETE'])
-def manage_tasks():
+@app.route('/tasks', methods=['POST', 'GET'])
+@app.route('/tasks/<task_id>', methods=['PUT', 'DELETE'])
+def manage_tasks(task_id=None):
     try:
         with open(data_file, 'r') as file:
             tasks = json.load(file)
@@ -16,10 +17,10 @@ def manage_tasks():
         tasks = []
 
     if request.method == 'GET':
-        # List all tasks
+        # here, use List all tasks
         return jsonify(tasks)
     elif request.method == 'POST':
-        # Here,Create a new task
+        # here,I create new task
         new_task = request.get_json()
         new_task['id'] = str(uuid.uuid4())
         tasks.append(new_task)
@@ -29,40 +30,32 @@ def manage_tasks():
 
         return jsonify(new_task)
     elif request.method == 'PUT':
-        #  Here,Update a task
-        task_id_to_update = request.args.get('id')
-        update_data = request.get_json()
-        print("DASDSDFDSFD")
-        for task in tasks:
-            print("ASASASAS")
-            print(task['id'],task_id_to_update)
+        # Update a task
+        if task_id:
+            update_data = request.get_json()
+            for task in tasks:
+                if task['id'] == task_id:
+                    task.update(update_data)
 
-            if task['id'] == task_id_to_update:
-                task.update(update_data)
+                    with open(data_file, 'w') as file:
+                        json.dump(tasks, file, indent=1)
 
-                with open(data_file, 'w') as file:
-                    json.dump(tasks, file, indent=1)
+                    return jsonify(task)
 
-                return jsonify(task)
-
-        return jsonify({"error": "Task not found"})
-    
-
+            return jsonify({"error": "Task not found"})
+        else:
+            return jsonify({"error": "Task ID not provided in the URL"})
     elif request.method == 'DELETE':
-        # Here,Delete a task
-        task_id_to_delete = request.args.get('id')
+        # Delete a task
+        if task_id:
+            tasks = [task for task in tasks if task['id'] != task_id]
 
-        tasks = [task for task in tasks if task['id'] != task_id_to_delete]
+            with open(data_file, 'w') as file:
+                json.dump(tasks, file, indent=1)
 
-        with open(data_file, 'w') as file:
-            json.dump(tasks, file, indent=1)
-
-        return jsonify({"message": "Task deleted successfully"})
+            return jsonify({"message": "Task deleted successfully"})
+        else:
+            return jsonify({"error": "Task ID not provided in the URL"})
 
 if __name__ == '__main__':
-
     app.run(debug=True)
-
-
-
-
